@@ -1,0 +1,331 @@
+$OpenBSD: patch-custom_conf_app_ini_example,v 1.20 2020/12/06 07:04:55 pvk Exp $
+
+Index: custom/conf/app.example.ini
+--- custom/conf/app.example.ini.orig	Sun Dec  6 19:56:58 2020
++++ custom/conf/app.example.ini	Sun Dec  6 20:19:56 2020
+@@ -7,7 +7,7 @@
+ ; App name that shows in every page title
+ APP_NAME = Gitea: Git with a cup of tea
+ ; Change it if you run locally
+-RUN_USER = git
++RUN_USER = _gitea
+ ; Application run mode, affects performance and debugging. Either "dev", "prod" or "test", default is "prod"
+ RUN_MODE = prod
+ 
+@@ -17,8 +17,8 @@
+ PROJECT_BOARD_BUG_TRIAGE_TYPE = Needs Triage, High Priority, Low Priority, Closed
+ 
+ [repository]
+-ROOT =
+-SCRIPT_TYPE = bash
++ROOT = ${LOCALSTATEDIR}/gitea/gitea-repositories
++SCRIPT_TYPE = sh
+ ; DETECTED_CHARSETS_ORDER tie-break order for detected charsets.
+ ; If the charsets have equal confidence, tie-breaking will be done by order in this list
+ ; with charsets earlier in the list chosen in preference to those later.
+@@ -29,7 +29,7 @@
+ ; Force every new repository to be private
+ FORCE_PRIVATE = false
+ ; Default privacy setting when creating a new repository, allowed values: last, private, public. Default is last which means the last setting used.
+-DEFAULT_PRIVATE = last
++DEFAULT_PRIVATE = private
+ ; Default private when using push-to-create
+ DEFAULT_PUSH_CREATE_PRIVATE = true
+ ; Global limit of repositories per user, applied at creation time. -1 means no limit
+@@ -40,7 +40,7 @@
+ PULL_REQUEST_QUEUE_LENGTH = 1000
+ ; Preferred Licenses to place at the top of the List
+ ; The name here must match the filename in conf/license or custom/conf/license
+-PREFERRED_LICENSES = Apache License 2.0,MIT License
++PREFERRED_LICENSES = BSD-2-Clause,ISC
+ ; Disable the ability to interact with repositories using the HTTP protocol
+ DISABLE_HTTP_GIT = false
+ ; Value for Access-Control-Allow-Origin header, default is not to present
+@@ -81,13 +81,15 @@
+ 
+ [repository.local]
+ ; Path for local repository copy. Defaults to `tmp/local-repo`
+-LOCAL_COPY_PATH = tmp/local-repo
++LOCAL_COPY_PATH = ${LOCALSTATEDIR}/gitea/tmp/local-repo
++; Path for local wiki copy. Defaults to `tmp/local-wiki`
++LOCAL_WIKI_PATH = ${LOCALSTATEDIR}/gitea/tmp/local-wiki
+ 
+ [repository.upload]
+ ; Whether repository file uploads are enabled. Defaults to `true`
+ ENABLED = true
+ ; Path for uploads. Defaults to `data/tmp/uploads` (tmp gets deleted on gitea restart)
+-TEMP_PATH = data/tmp/uploads
++TEMP_PATH = ${LOCALSTATEDIR}/gitea/data/tmp/uploads
+ ; Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
+ ALLOWED_TYPES =
+ ; Max size of each file in megabytes. Defaults to 3MB
+@@ -192,7 +194,7 @@
+ ; Max size of files to be displayed (default is 8MiB)
+ MAX_DISPLAY_FILE_SIZE = 8388608
+ ; Whether the email of the user should be shown in the Explore Users page
+-SHOW_USER_EMAIL = true
++SHOW_USER_EMAIL = false
+ ; Set the default theme for the Gitea install
+ DEFAULT_THEME = gitea
+ ; All available themes. Allow users select personalized themes regardless of the value of `DEFAULT_THEME`.
+@@ -289,7 +291,7 @@
+ ; The network interface the builtin SSH server should listen on
+ SSH_LISTEN_HOST =
+ ; Port number to be exposed in clone URL
+-SSH_PORT = 22
++SSH_PORT = 
+ ; The port number the builtin SSH server should listen on
+ SSH_LISTEN_PORT = %(SSH_PORT)s
+ ; Root path of SSH directory, default is '~/.ssh', but you have to use '/home/git/.ssh'.
+@@ -340,7 +342,7 @@
+ ; Indicate whether to check minimum key size with corresponding type
+ MINIMUM_KEY_SIZE_CHECK = false
+ ; Disable CDN even in "prod" mode
+-OFFLINE_MODE = false
++OFFLINE_MODE = true
+ DISABLE_ROUTER_LOG = false
+ ; Generate steps:
+ ; $ ./gitea cert -ca=true -duration=8760h0m0s -host=myhost.example.com
+@@ -350,13 +352,13 @@
+ ; $ openssl pkcs12 -in cert.pfx -out cert.pem -nokeys
+ ; $ openssl pkcs12 -in cert.pfx -out key.pem -nocerts -nodes
+ ; Paths are relative to CUSTOM_PATH
+-CERT_FILE = https/cert.pem
+-KEY_FILE = https/key.pem
++CERT_FILE = ${LOCALSTATEDIR}/gitea/custom/https/cert.pem
++KEY_FILE = ${LOCALSTATEDIR}/gitea/custom/https/key.pem
+ ; Root directory containing templates and static files.
+ ; default is the path where Gitea is executed
+ STATIC_ROOT_PATH =
+ ; Default path for App data
+-APP_DATA_PATH = data
++APP_DATA_PATH = ${LOCALSTATEDIR}/gitea/data
+ ; Application level GZIP support
+ ENABLE_GZIP = false
+ ; Application profiling (memory and cpu)
+@@ -364,14 +366,14 @@
+ ; For "serve" command it dumps to disk at PPROF_DATA_PATH as (cpuprofile|memprofile)_<username>_<temporary id>
+ ENABLE_PPROF = false
+ ; PPROF_DATA_PATH, use an absolute path when you start gitea as service
+-PPROF_DATA_PATH = data/tmp/pprof
++PPROF_DATA_PATH = ${LOCALSTATEDIR}/gitea/data/tmp/pprof
+ ; Landing page, can be "home", "explore", "organizations" or "login"
+ ; The "login" choice is not a security measure but just a UI flow change, use REQUIRE_SIGNIN_VIEW to force users to log in.
+ LANDING_PAGE = home
+ ; Enables git-lfs support. true or false, default is false.
+ LFS_START_SERVER = false
+ ; Where your lfs files reside, default is data/lfs.
+-LFS_CONTENT_PATH = data/lfs
++LFS_CONTENT_PATH = ${LOCALSTATEDIR}/gitea/data/lfs
+ ; LFS authentication secret, change this yourself
+ LFS_JWT_SECRET =
+ ; LFS authentication validity period (in time.Duration), pushes taking longer than this may fail.
+@@ -401,7 +403,7 @@
+ 
+ [database]
+ ; Database to use. Either "mysql", "postgres", "mssql" or "sqlite3".
+-DB_TYPE = mysql
++DB_TYPE = sqlite3
+ HOST = 127.0.0.1:3306
+ NAME = gitea
+ USER = root
+@@ -418,13 +420,13 @@
+ ; NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
+ CHARSET = utf8mb4
+ ; For "sqlite3" and "tidb", use an absolute path when you start gitea as service
+-PATH = data/gitea.db
++PATH = ${LOCALSTATEDIR}/gitea/data/gitea.db
+ ; For "sqlite3" only. Query timeout
+ SQLITE_TIMEOUT = 500
+ ; For iterate buffer, default is 50
+ ITERATE_BUFFER_SIZE = 50
+ ; Show the database generated SQL
+-LOG_SQL = true
++LOG_SQL = false
+ ; Maximum number of DB Connect retries
+ DB_RETRIES = 10
+ ; Backoff time per DB retry (time.Duration)
+@@ -444,7 +446,7 @@
+ ; Issue indexer name, available when ISSUE_INDEXER_TYPE is elasticsearch
+ ISSUE_INDEXER_NAME = gitea_issues
+ ; Issue indexer storage path, available when ISSUE_INDEXER_TYPE is bleve
+-ISSUE_INDEXER_PATH = indexers/issues.bleve
++ISSUE_INDEXER_PATH = ${LOCALSTATEDIR}/gitea/indexers/issues.bleve
+ ; Issue indexer queue, currently support: channel, levelqueue or redis, default is levelqueue
+ ISSUE_INDEXER_QUEUE_TYPE = levelqueue
+ ; When ISSUE_INDEXER_QUEUE_TYPE is levelqueue, this will be the queue will be saved path,
+@@ -463,7 +465,7 @@
+ ; Code search engine type, could be `bleve` or `elasticsearch`.
+ REPO_INDEXER_TYPE = bleve
+ ; Index file used for code search.
+-REPO_INDEXER_PATH = indexers/repos.bleve
++REPO_INDEXER_PATH = ${LOCALSTATEDIR}/gitea/indexers/repos.bleve
+ ; Code indexer connection string, available when `REPO_INDEXER_TYPE` is elasticsearch. i.e. http://elastic:changeme@localhost:9200
+ REPO_INDEXER_CONN_STR =
+ ; Code indexer name, available when `REPO_INDEXER_TYPE` is elasticsearch
+@@ -514,7 +516,7 @@
+ 
+ [admin]
+ ; Disallow regular (non-admin) users from creating organizations.
+-DISABLE_REGULAR_ORG_CREATION = false
++DISABLE_REGULAR_ORG_CREATION = true
+ ; Default configuration for email notifications for users (user configurable). Options: enabled, onmention, disabled
+ DEFAULT_EMAIL_NOTIFICATIONS = enabled
+ 
+@@ -573,7 +575,7 @@
+ ;  - <username>.livejournal.com
+ ;
+ ; Whether to allow signin in via OpenID
+-ENABLE_OPENID_SIGNIN = true
++ENABLE_OPENID_SIGNIN = false
+ ; Whether to allow registering via OpenID
+ ; Do not include to rely on rhw DISABLE_REGISTRATION setting
+ ;ENABLE_OPENID_SIGNUP = true
+@@ -599,11 +601,11 @@
+ ; gitea.io,example.com
+ EMAIL_DOMAIN_WHITELIST=
+ ; Disallow registration, only allow admins to create accounts.
+-DISABLE_REGISTRATION = false
++DISABLE_REGISTRATION = true
+ ; Allow registration only using third-party services, it works only when DISABLE_REGISTRATION is false
+ ALLOW_ONLY_EXTERNAL_REGISTRATION = false
+ ; User must sign in to view anything.
+-REQUIRE_SIGNIN_VIEW = false
++REQUIRE_SIGNIN_VIEW = true
+ ; Mail notification
+ ENABLE_NOTIFY_MAIL = false
+ ; This setting enables gitea to be signed in with HTTP BASIC Authentication using the user's password
+@@ -629,7 +631,7 @@
+ RECAPTCHA_URL = https://www.google.com/recaptcha/
+ ; Default value for KeepEmailPrivate
+ ; Each new user will get the value of this setting copied into their profile
+-DEFAULT_KEEP_EMAIL_PRIVATE = false
++DEFAULT_KEEP_EMAIL_PRIVATE = true
+ ; Default value for AllowCreateOrganization
+ ; Every new user will have rights set to create organizations depending on this setting
+ DEFAULT_ALLOW_CREATE_ORGANIZATION = true
+@@ -697,7 +699,7 @@
+ ; QQ: smtp.qq.com:465
+ ; Using STARTTLS on port 587 is recommended per RFC 6409.
+ ; Note, if the port ends with "465", SMTPS will be used.
+-HOST =
++HOST = localhost:25
+ ; Disable HELO operation when hostnames are different.
+ DISABLE_HELO =
+ ; Custom hostname for HELO operation, if no value is provided, one is retrieved from system.
+@@ -706,24 +708,24 @@
+ SKIP_VERIFY = false
+ ; Use client certificate
+ USE_CERTIFICATE = false
+-CERT_FILE = custom/mailer/cert.pem
+-KEY_FILE = custom/mailer/key.pem
++CERT_FILE = ${LOCALSTATEDIR}/gitea/custom/https/cert.pem
++KEY_FILE = ${LOCALSTATEDIR}/gitea/custom/https/key.pem
+ ; Should SMTP connect with TLS, (if port ends with 465 TLS will always be used.)
+ ; If this is false but STARTTLS is supported the connection will be upgraded to TLS opportunistically.
+ IS_TLS_ENABLED = false
+ ; Mail from address, RFC 5322. This can be just an email address, or the `"Name" <email@example.com>` format
+-FROM =
++FROM = gitea@%(DOMAIN)s
+ ; Mailer user name and password
+ ; Please Note: Authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via STARTTLS) or `HOST=localhost`.
+ USER =
+ ; Use PASSWD = `your password` for quoting if you use special characters in the password.
+ PASSWD =
+ ; Send mails as plain text
+-SEND_AS_PLAIN_TEXT = false
++SEND_AS_PLAIN_TEXT = true
+ ; Set Mailer Type (either SMTP, sendmail or dummy to just send to the log)
+ MAILER_TYPE = smtp
+ ; Specify an alternative sendmail binary
+-SENDMAIL_PATH = sendmail
++SENDMAIL_PATH = /usr/sbin/sendmail
+ ; Specify any extra sendmail arguments
+ SENDMAIL_ARGS =
+ ; Timeout for Sendmail
+@@ -756,13 +758,13 @@
+ 
+ [session]
+ ; Either "memory", "file", or "redis", default is "memory"
+-PROVIDER = memory
++PROVIDER = file
+ ; Provider config options
+ ; memory: doesn't have any config yet
+ ; file: session file path, e.g. `data/sessions`
+ ; redis: network=tcp,addr=:6379,password=macaron,db=0,pool_size=100,idle_timeout=180
+ ; mysql: go-sql-driver/mysql dsn config string, e.g. `root:password@/session_table`
+-PROVIDER_CONFIG = data/sessions
++PROVIDER_CONFIG = ${LOCALSTATEDIR}/gitea/data/sessions
+ ; Session cookie name
+ COOKIE_NAME = i_like_gitea
+ ; If you use session in https only, default is false
+@@ -773,8 +775,8 @@
+ SESSION_LIFE_TIME = 86400
+ 
+ [picture]
+-AVATAR_UPLOAD_PATH = data/avatars
+-REPOSITORY_AVATAR_UPLOAD_PATH = data/repo-avatars
++AVATAR_UPLOAD_PATH = ${LOCALSTATEDIR}/gitea/data/avatars
++REPOSITORY_AVATAR_UPLOAD_PATH = ${LOCALSTATEDIR}/gitea/data/repo-avatars
+ ; How Gitea deals with missing repository avatars
+ ; none = no avatar will be displayed; random = random avatar will be displayed; image = default image will be used
+ REPOSITORY_AVATAR_FALLBACK = none
+@@ -790,7 +792,7 @@
+ ; or a custom avatar source, like: http://cn.gravatar.com/avatar/
+ GRAVATAR_SOURCE = gravatar
+ ; This value will always be true in offline mode.
+-DISABLE_GRAVATAR = false
++DISABLE_GRAVATAR = true
+ ; Federated avatar lookup uses DNS to discover avatar associated
+ ; with emails, see https://www.libravatar.org
+ ; This value will always be false in offline mode or when Gravatar is disabled.
+@@ -812,7 +814,7 @@
+ ; Currently, only `minio` is supported.
+ SERVE_DIRECT = false
+ ; Path for attachments. Defaults to `data/attachments` only available when STORAGE_TYPE is `local`
+-PATH = data/attachments
++PATH = ${LOCALSTATEDIR}/gitea/data/attachments
+ ; Minio endpoint to connect only available when STORAGE_TYPE is `minio`
+ MINIO_ENDPOINT = localhost:9000
+ ; Minio accessKeyID to connect only available when STORAGE_TYPE is `minio`
+@@ -832,16 +834,16 @@
+ ; Specifies the format for fully outputted dates. Defaults to RFC1123
+ ; Special supported values are ANSIC, UnixDate, RubyDate, RFC822, RFC822Z, RFC850, RFC1123, RFC1123Z, RFC3339, RFC3339Nano, Kitchen, Stamp, StampMilli, StampMicro and StampNano
+ ; For more information about the format see http://golang.org/pkg/time/#pkg-constants
+-FORMAT =
++FORMAT = RFC1123Z
+ ; Location the UI time display i.e. Asia/Shanghai
+ ; Empty means server's location setting
+ DEFAULT_UI_LOCATION =
+ 
+ [log]
+-ROOT_PATH =
++ROOT_PATH = ${LOCALSTATEDIR}/log/gitea
+ ; Either "console", "file", "conn", "smtp" or "database", default is "console"
+ ; Use comma to separate multiple modes, e.g. "console, file"
+-MODE = console
++MODE = file
+ ; Buffer length of the channel, keep it as it is if you don't know what it is.
+ BUFFER_LEN = 10000
+ REDIRECT_MACARON_LOG = false
+@@ -1132,7 +1134,7 @@
+ LANGS = en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,uk-UA,ja-JP,es-ES,pt-BR,pt-PT,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR
+ NAMES = English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,Українська,日本語,español,português do Brasil,Português de Portugal,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어
+ 
+-[U2F]
++;[U2F]
+ ; NOTE: THE DEFAULT VALUES HERE WILL NEED TO BE CHANGED
+ ; Two Factor authentication with security keys
+ ; https://developers.yubico.com/U2F/App_ID.html
+@@ -1147,9 +1149,9 @@
+ [other]
+ SHOW_FOOTER_BRANDING = false
+ ; Show version information about Gitea and Go in the footer
+-SHOW_FOOTER_VERSION = true
++SHOW_FOOTER_VERSION = false
+ ; Show template execution time in the footer
+-SHOW_FOOTER_TEMPLATE_LOAD_TIME = true
++SHOW_FOOTER_TEMPLATE_LOAD_TIME = false
+ 
+ [markup.sanitizer.1]
+ ; The following keys can appear once to define a sanitation policy rule.
