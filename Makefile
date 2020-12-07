@@ -35,7 +35,7 @@ do-extract:
 	@tar xzf ${FULLDISTDIR}/${DISTFILES} -C ${WRKDIST}
 
 pre-configure:
-	${SUBST_CMD} ${WRKDIST}/{custom/conf/app.ini.sample,main.go}
+	${SUBST_CMD} ${WRKDIST}/{custom/conf/app.example.ini,main.go}
 
 do-install:
 	${INSTALL_PROGRAM} ${MODGO_WORKSPACE}/bin/gitea ${PREFIX}/sbin
